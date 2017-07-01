@@ -15,6 +15,7 @@ module.exports = (req, res) => {
         }
       );
     })
+
 }
 
 //categories are nested arbitrarily deep so i need to recursively go through the lists
