@@ -9,6 +9,7 @@ module.exports = [
   'appstore for android',
   'books',
   'electronics',
+  'collectible coins',
   'gift cards',
   'movies & tv',
   'mp3 downloads',
@@ -19,4 +20,8 @@ module.exports = [
   'musical instruments',
   'prime pantry',
   'video games',
-]
+  'home & kitchen',
+  'pet supplies',
+  'sports collectibles',
+  'industrial & scientific',
+];
