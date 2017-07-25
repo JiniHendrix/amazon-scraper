@@ -59,7 +59,7 @@ function digDown(url, count = 2) {
       if (list.first().find('span').length === 1) {
         list.each((i, elem) => {
           // for first element just scrape
-          const timedOut = ($, elem) => {
+          const scrapeOrDig = ($, elem) => {
             if (i === 0) {
               scrape($);
             } else {
@@ -70,16 +70,14 @@ function digDown(url, count = 2) {
                 });
             }
           };
-          setTimeout(timedOut.bind(null, $, elem), timer += randTime());
+          setTimeout(scrapeOrDig.bind(null, $, elem), timer += randTime());
         });
       } else {
-        let counter = 0;
         list.each((i, elem) => {
           const timedOut = ($, elem) => {
             digDown($(elem).find('a').attr('href'), count + 1);
           };
           setTimeout(timedOut.bind(null, $, elem), timer += randTime());
-          counter++;
         });
       }
     });
@@ -89,7 +87,7 @@ function digDown(url, count = 2) {
 }
 
 
-const scraper = () => {
+const scrapeBestSellersList = () => {
   request('https://www.amazon.com/Best-Sellers/zgbs/ref=zg_bsms_tab',
     (err, response, body) => {
       const $ = cheerio.load(body);
@@ -103,7 +101,7 @@ const scraper = () => {
     });
 };
 
-module.exports = scraper;
+module.exports = scrapeBestSellersList;
 
 // scrape and put serialized JSON into a file
 // serve that file on button click.
