@@ -4,6 +4,7 @@ const uselessCategories = require('../utils/useless-categories');
 const Item = require('../utils/itemClass');
 
 const items = [];
+let timer = 0;
 
 function randTime() {
   return Math.floor(((Math.random() * 5) + 5) * 1000);
@@ -18,24 +19,28 @@ function scrape($) {
       const name = $(elem).find('.p13n-sc-truncated-hyphen').text();
       const link = `https://www.amazon.com${$(elem).find('a').attr('href')}`;
       const testLink = 'https://www.amazon.com/UFO-SPINNER-Spinner-Stainless-Precision/dp/B06Y5HW7C9/ref=zg_bs_toys-and-games_home_3?_encoding=UTF8&psc=1&refRID=1QKF1KYEXWQ5TVKKD780';
-      request(testLink,
-        (err, response, body) => {
-          const $ = cheerio.load(body); console.log(body);
-          const info = $('.prodDetTable tr');
-          const weight = $(info).eq(1).find('td').text()
-            .replace('\n', '')
-            .trim();
-          console.log('weight:', weight);
-          const split = weight.split(' ');
 
-          if (split[1].indexOf('pounds') > -1) {
-            if (Number(split[0]) > 4) {
+      const getProdInfo = (url) => {
+        request(url,
+          (err, response, body) => {
+            const $ = cheerio.load(body);
+            const info = $('.prodDetTable tr');
+            const weight = $(info).eq(1).find('td').text()
+              .replace('\n', '')
+              .trim();
+            console.log('weight:', weight);
+            const split = weight.split(' ');
+
+            if (split[1].indexOf('pounds') > -1) {
+              if (Number(split[0]) > 4) {
+
+              }
+            } else {
 
             }
-          } else {
-
-          }
-        });
+          });
+      };
+      setTimeout(getProdInfo.bind(null, testLink), timer += randTime);
     }
   });
 }
@@ -45,7 +50,6 @@ request('https://www.amazon.com/Best-Sellers-Arts-Crafts-Sewing-Beading-Supplies
     scrape(cheerio.load(body));
   });
 
-let timer = 0;
 
 function digDown(url, count = 2) {
   // get list of li links
@@ -59,7 +63,7 @@ function digDown(url, count = 2) {
       if (list.first().find('span').length === 1) {
         list.each((i, elem) => {
           // for first element just scrape
-          const scrapeOrDig = ($, elem) => {
+          const callScraper = ($, elem) => {
             if (i === 0) {
               scrape($);
             } else {
@@ -70,7 +74,7 @@ function digDown(url, count = 2) {
                 });
             }
           };
-          setTimeout(scrapeOrDig.bind(null, $, elem), timer += randTime());
+          setTimeout(callScraper.bind(null, $, elem), timer += randTime());
         });
       } else {
         list.each((i, elem) => {
