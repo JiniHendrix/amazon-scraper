@@ -2,45 +2,73 @@ const cheerio = require('cheerio');
 const request = require('request');
 const uselessCategories = require('../utils/useless-categories');
 const Item = require('../utils/itemClass');
+const fs = require('fs');
+const path = require('path');
 
 const items = [];
 let timer = 0;
+let pending = 0;
 
 function randTime() {
   return Math.floor(((Math.random() * 5) + 5) * 1000);
 }
 
+function cleanUp(str) {
+  return str.replace('\n', '').trim();
+}
 function scrape($) {
-  const items = $('.zg_itemImmersion');
-  items.each((i, elem) => {
+  const products = $('.zg_itemImmersion');
+  products.each((i, elem) => {
     const price = Number($(elem).find('.p13n-sc-price').text().slice(1));
 
     if (price >= 10 && price <= 50) {
-      const name = $(elem).find('.p13n-sc-truncated-hyphen').text();
-      const link = `https://www.amazon.com${$(elem).find('a').attr('href')}`;
-      const testLink = 'https://www.amazon.com/UFO-SPINNER-Spinner-Stainless-Precision/dp/B06Y5HW7C9/ref=zg_bs_toys-and-games_home_3?_encoding=UTF8&psc=1&refRID=1QKF1KYEXWQ5TVKKD780';
+      pending += 1;
+      const prodName = cleanUp($(elem).find('.p13n-sc-truncated-hyphen').text());
+      const imgLink = $(elem).find('img').attr('src');
+      const listingUrl = `https://www.amazon.com${$(elem).find('a').attr('href')}`;
 
-      const getProdInfo = (url) => {
-        request(url,
+      const getProdInfo = (listingUrl, imgLink, price, prodName) => {
+        request(listingUrl,
           (err, response, body) => {
             const $ = cheerio.load(body);
             const info = $('.prodDetTable tr');
-            const weight = $(info).eq(1).find('td').text()
-              .replace('\n', '')
-              .trim();
-            console.log('weight:', weight);
+            let weight = cleanUp($(info).eq(1).find('td').text());
             const split = weight.split(' ');
 
             if (split[1].indexOf('pounds') > -1) {
-              if (Number(split[0]) > 4) {
-
+              if (Number(split[0]) <= 4) {
+                weight = `${split[0]} ${split[1]}`;
+              } else {
+                pending--;
+                return;
               }
             } else {
+              weight = `${split[0]} ${split[1]}`;
+            }
 
+            let rank;
+            $(info).each((i, elem) => {
+              const name = $(elem).find('th').text();
+              if (name.indexOf('Rank') > -1) {
+                rank = cleanUp($(elem).find('td').text().split('\\n')[0]);
+              }
+            });
+            const dimensions = cleanUp($(info).eq(0).find('td').text());
+
+            items.push(new Item(
+              listingUrl,
+              prodName,
+              price,
+              weight,
+              dimensions,
+              rank,
+              imgLink));
+            if (!--pending) {
+              fs.writeFile(path.join(__dirname, '../../data/data'), JSON.stringify(items, null, 2));
             }
           });
       };
-      setTimeout(getProdInfo.bind(null, testLink), timer += randTime);
+      setTimeout(getProdInfo.bind(null, listingUrl, imgLink, price, prodName), timer += randTime());
     }
   });
 }
@@ -50,6 +78,19 @@ request('https://www.amazon.com/Best-Sellers-Arts-Crafts-Sewing-Beading-Supplies
     scrape(cheerio.load(body));
   });
 
+function iteratePagination($, elem) {
+  const callScraper = () => {
+    const url = $(elem).attr('href');
+    request(url, (err, response, body) => {
+      scrape(cheerio.load(body));
+    });
+  };
+  $(elem).find('.zg_pagination a').each((i, elem) => {
+    if (i !== 0) {
+      setTimeout(callScraper.bind(null, $, elem), timer += randTime());
+    }
+  });
+}
 
 function digDown(url, count = 2) {
   // get list of li links
@@ -66,11 +107,13 @@ function digDown(url, count = 2) {
           const callScraper = ($, elem) => {
             if (i === 0) {
               scrape($);
+              iteratePagination($, elem);
             } else {
               // 2nd and on follow link for next list item and pass into scraper
               request($(elem).find('a').attr('href'),
                 (err, response, body) => {
                   scrape(cheerio.load(body));
+                  iteratePagination($, elem);
                 });
             }
           };
