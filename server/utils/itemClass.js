@@ -1,14 +1,16 @@
-module.exports = (
-  link,
-  name,
+module.exports = function Item(
+  listingUrl,
+  prodName,
   price,
   weight,
   dimensions,
-  rank) => {
-  this.link = link;
-  this.name = name;
+  rank,
+  imgLink) {
+  this.listingUrl = listingUrl;
+  this.prodName = prodName;
   this.price = price;
   this.weight = weight;
   this.dimensions = dimensions;
   this.rank = rank;
+  this.imgLink = imgLink;
 };
